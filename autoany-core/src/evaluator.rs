@@ -11,9 +11,5 @@ pub trait Evaluator {
     type Artifact;
 
     /// Evaluate execution results and produce a scored outcome.
-    fn evaluate(
-        &self,
-        artifact: &Self::Artifact,
-        execution: &ExecutionResult,
-    ) -> Result<Outcome>;
+    fn evaluate(&self, artifact: &Self::Artifact, execution: &ExecutionResult) -> Result<Outcome>;
 }

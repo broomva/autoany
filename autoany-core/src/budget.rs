@@ -78,3 +78,49 @@ impl BudgetController {
         self.max_trials
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn fresh_budget_allows_trials() {
+        let b = BudgetController::new(5, None);
+        assert!(b.check().is_ok());
+        assert_eq!(b.remaining(), 5);
+        assert_eq!(b.used(), 0);
+    }
+
+    #[test]
+    fn budget_exhaustion() {
+        let mut b = BudgetController::new(2, None);
+        b.consume();
+        b.consume();
+        assert!(b.check().is_err());
+        assert_eq!(b.remaining(), 0);
+    }
+
+    #[test]
+    fn budget_remaining_tracks_correctly() {
+        let mut b = BudgetController::new(10, None);
+        b.consume();
+        b.consume();
+        b.consume();
+        assert_eq!(b.remaining(), 7);
+        assert_eq!(b.used(), 3);
+    }
+
+    #[test]
+    fn budget_from_spec() {
+        let spec = crate::spec::Budget {
+            max_trials: 20,
+            time_per_trial_s: 60,
+            total_time_s: Some(600),
+            token_budget: None,
+            cost_budget: None,
+        };
+        let b = BudgetController::from_spec(&spec);
+        assert_eq!(b.max_trials(), 20);
+        assert_eq!(b.remaining(), 20);
+    }
+}

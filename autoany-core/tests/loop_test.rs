@@ -70,11 +70,7 @@ struct SimpleEvaluator;
 impl Evaluator for SimpleEvaluator {
     type Artifact = SimpleArtifact;
 
-    fn evaluate(
-        &self,
-        _artifact: &SimpleArtifact,
-        execution: &ExecutionResult,
-    ) -> Result<Outcome> {
+    fn evaluate(&self, _artifact: &SimpleArtifact, execution: &ExecutionResult) -> Result<Outcome> {
         let score = execution
             .output
             .as_ref()
@@ -122,12 +118,7 @@ fn test_full_egri_loop() {
     println!("Final: {:?}", summary.final_score);
 
     // Should have improved from baseline
-    let final_score = summary
-        .final_score
-        .as_ref()
-        .unwrap()
-        .as_scalar()
-        .unwrap();
+    let final_score = summary.final_score.as_ref().unwrap().as_scalar().unwrap();
     assert!(final_score > 1.0, "should improve from baseline of 1.0");
 
     // The best artifact should be close to x=3 (the optimum)

@@ -5,7 +5,7 @@ Autoany scaffold initializer.
 Bootstraps a minimal EGRI project directory for a new problem instance.
 
 Usage:
-    python3 autoany_init.py <project-name> --domain <code|rag|workflow|etl|ui|generic> --path <output-dir>
+    python3 autoany_init.py <name> --domain <preset> --path <dir>
     python3 autoany_init.py --help
 """
 
@@ -17,45 +17,100 @@ from datetime import datetime, timezone
 
 DOMAIN_PRESETS = {
     "code": {
-        "objective": {"metric": "minimize test_failure_rate", "type": "scalar", "direction": "minimize"},
-        "mutable_artifact": {"path": "src/", "type": "code", "description": "Source code under optimization"},
-        "immutable_artifact": {"path": "tests/", "reason": "Test suite — evaluator must not change during trials"},
+        "objective": {
+            "metric": "minimize test_failure_rate",
+            "type": "scalar",
+            "direction": "minimize",
+        },
+        "mutable_artifact": {
+            "path": "src/",
+            "type": "code",
+            "description": "Source code under optimization",
+        },
+        "immutable_artifact": {
+            "path": "tests/",
+            "reason": "Test suite — evaluator must not change during trials",
+        },
         "evaluator_script": "eval/run_eval.sh",
         "execution_backend": "local",
         "timeout_s": 300,
         "proposer": "llm",
     },
     "rag": {
-        "objective": {"metric": "maximize answer_accuracy", "type": "scalar", "direction": "maximize"},
-        "mutable_artifact": {"path": "config/retrieval.yaml", "type": "config", "description": "Retrieval config, chunking, prompts, reranker"},
-        "immutable_artifact": {"path": "eval/golden_set.jsonl", "reason": "Golden eval set — ground truth for scoring"},
+        "objective": {
+            "metric": "maximize answer_accuracy",
+            "type": "scalar",
+            "direction": "maximize",
+        },
+        "mutable_artifact": {
+            "path": "config/retrieval.yaml",
+            "type": "config",
+            "description": "Retrieval config, chunking, prompts, reranker",
+        },
+        "immutable_artifact": {
+            "path": "eval/golden_set.jsonl",
+            "reason": "Golden eval set — ground truth for scoring",
+        },
         "evaluator_script": "eval/judge.py",
         "execution_backend": "api",
         "timeout_s": 120,
         "proposer": "llm",
     },
     "workflow": {
-        "objective": {"metric": "maximize completion_rate", "type": "scalar", "direction": "maximize"},
-        "mutable_artifact": {"path": "workflow/policy.yaml", "type": "graph", "description": "Decision graph, routing, escalation thresholds"},
-        "immutable_artifact": {"path": "eval/replay_logs/", "reason": "Replay corpus — fixed test cases"},
+        "objective": {
+            "metric": "maximize completion_rate",
+            "type": "scalar",
+            "direction": "maximize",
+        },
+        "mutable_artifact": {
+            "path": "workflow/policy.yaml",
+            "type": "graph",
+            "description": "Decision graph, routing, escalation thresholds",
+        },
+        "immutable_artifact": {
+            "path": "eval/replay_logs/",
+            "reason": "Replay corpus — fixed test cases",
+        },
         "evaluator_script": "eval/replay_eval.py",
         "execution_backend": "local",
         "timeout_s": 60,
         "proposer": "llm",
     },
     "etl": {
-        "objective": {"metric": "maximize row_accuracy", "type": "scalar", "direction": "maximize"},
-        "mutable_artifact": {"path": "transforms/", "type": "code", "description": "Transform logic, schema mappings, dedup rules"},
-        "immutable_artifact": {"path": "fixtures/", "reason": "Source and expected output snapshots"},
+        "objective": {
+            "metric": "maximize row_accuracy",
+            "type": "scalar",
+            "direction": "maximize",
+        },
+        "mutable_artifact": {
+            "path": "transforms/",
+            "type": "code",
+            "description": "Transform logic, schema mappings, dedup rules",
+        },
+        "immutable_artifact": {
+            "path": "fixtures/",
+            "reason": "Source and expected output snapshots",
+        },
         "evaluator_script": "eval/data_quality.py",
         "execution_backend": "container",
         "timeout_s": 180,
         "proposer": "llm",
     },
     "ui": {
-        "objective": {"metric": "maximize task_completion_rate", "type": "scalar", "direction": "maximize"},
-        "mutable_artifact": {"path": "src/components/", "type": "code", "description": "UI components, copy, layout, flow"},
-        "immutable_artifact": {"path": "eval/scenarios/", "reason": "User simulation scenarios"},
+        "objective": {
+            "metric": "maximize task_completion_rate",
+            "type": "scalar",
+            "direction": "maximize",
+        },
+        "mutable_artifact": {
+            "path": "src/components/",
+            "type": "code",
+            "description": "UI components, copy, layout, flow",
+        },
+        "immutable_artifact": {
+            "path": "eval/scenarios/",
+            "reason": "User simulation scenarios",
+        },
         "evaluator_script": "eval/ui_eval.py",
         "execution_backend": "local",
         "timeout_s": 60,
@@ -87,39 +142,39 @@ def generate_problem_spec(name: str, domain: str) -> str:
 name: "{name}"
 
 objective:
-  metric: "{obj['metric']}"
-  type: {obj['type']}
-  direction: {obj['direction']}
+  metric: "{obj["metric"]}"
+  type: {obj["type"]}
+  direction: {obj["direction"]}
   baseline: null
 
 constraints:
-  - "runtime_s <= {preset['timeout_s']}"
+  - "runtime_s <= {preset["timeout_s"]}"
 
 artifacts:
   mutable:
-    - path: "{mut['path']}"
-      type: {mut['type']}
-      description: "{mut['description']}"
+    - path: "{mut["path"]}"
+      type: {mut["type"]}
+      description: "{mut["description"]}"
   immutable:
-    - path: "{imm['path']}"
-      reason: "{imm['reason']}"
+    - path: "{imm["path"]}"
+      reason: "{imm["reason"]}"
 
 evaluator:
-  script: "{preset['evaluator_script']}"
+  script: "{preset["evaluator_script"]}"
   inputs: []
   outputs: {{}}
   trusted: false
   baseline_score: null
 
 execution:
-  backend: {preset['execution_backend']}
+  backend: {preset["execution_backend"]}
   command: ""
-  timeout_s: {preset['timeout_s']}
+  timeout_s: {preset["timeout_s"]}
   sandbox: true
 
 budget:
   max_trials: 50
-  time_per_trial_s: {preset['timeout_s']}
+  time_per_trial_s: {preset["timeout_s"]}
   total_time_s: null
   token_budget: null
   cost_budget: null
@@ -137,7 +192,7 @@ autonomy:
     - "budget_75_percent_exhausted_without_improvement"
 
 search:
-  proposer: {preset['proposer']}
+  proposer: {preset["proposer"]}
   strategy_notes: ""
 
 ledger:
@@ -244,15 +299,26 @@ def main():
     os.chmod(eval_path, 0o755)
 
     # Write ledger schema
-    schema_src = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "ledger.schema.json")
+    schema_src = os.path.join(
+        os.path.dirname(os.path.dirname(__file__)), "assets", "ledger.schema.json"
+    )
     schema_dst = os.path.join(project_dir, "ledger.schema.json")
     if os.path.exists(schema_src):
         import shutil
+
         shutil.copy2(schema_src, schema_dst)
     else:
         # Inline minimal schema
         with open(schema_dst, "w") as f:
-            json.dump({"$schema": "https://json-schema.org/draft/2020-12/schema", "title": "Autoany Trial Ledger Entry", "type": "object"}, f, indent=2)
+            json.dump(
+                {
+                    "$schema": "https://json-schema.org/draft/2020-12/schema",
+                    "title": "Autoany Trial Ledger Entry",
+                    "type": "object",
+                },
+                f,
+                indent=2,
+            )
 
     # Write README
     readme_path = os.path.join(project_dir, "README.md")

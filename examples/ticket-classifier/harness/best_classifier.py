@@ -9,9 +9,35 @@ Valid labels: "billing", "account", "bug"
 
 def classify(text: str) -> str:
     text = text.lower()
-    if any(w in text for w in ("pay", "charge", "refund", "invoice", "bill", "subscription", "receipt", "discount", "cancel")):
+    if any(
+        w in text
+        for w in (
+            "pay",
+            "charge",
+            "refund",
+            "invoice",
+            "bill",
+            "subscription",
+            "receipt",
+            "discount",
+            "cancel",
+        )
+    ):
         return "billing"
-    elif any(w in text for w in ("account", "log", "password", "username", "email", "profile", "merge", "two-factor", "authentication")):
+    elif any(
+        w in text
+        for w in (
+            "account",
+            "log",
+            "password",
+            "username",
+            "email",
+            "profile",
+            "merge",
+            "two-factor",
+            "authentication",
+        )
+    ):
         return "account"
     else:
         return "bug"

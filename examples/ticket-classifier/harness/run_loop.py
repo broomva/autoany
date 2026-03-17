@@ -6,9 +6,9 @@ Manages: versioning, evaluation, promotion, ledger, rollback.
 The mutation step is manual (or agent-driven) — this harness handles everything else.
 
 Usage:
-    python3 harness/run_loop.py baseline      # Run evaluator on current artifact, record baseline
-    python3 harness/run_loop.py evaluate       # Run evaluator on current artifact as a trial
-    python3 harness/run_loop.py promote        # Promote current artifact (save as best)
+    python3 harness/run_loop.py baseline   # Record baseline
+    python3 harness/run_loop.py evaluate   # Run trial
+    python3 harness/run_loop.py promote    # Promote current
     python3 harness/run_loop.py rollback       # Rollback to last promoted artifact
     python3 harness/run_loop.py status         # Show current loop status
     python3 harness/run_loop.py ledger         # Print ledger summary
@@ -19,7 +19,6 @@ import os
 import shutil
 import subprocess
 import sys
-import time
 from datetime import datetime, timezone
 
 PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -45,7 +44,9 @@ def save_state(state):
 def run_evaluator():
     result = subprocess.run(
         [sys.executable, EVALUATOR, ARTIFACT],
-        capture_output=True, text=True, timeout=10
+        capture_output=True,
+        text=True,
+        timeout=10,
     )
     if result.returncode != 0:
         return {"score": 0.0, "error": result.stderr, "constraints_passed": False}
@@ -77,12 +78,16 @@ def cmd_baseline():
     }
     append_ledger(entry)
 
-    print(f"Baseline score: {result['score']:.2%} ({result['correct']}/{result['total']})")
+    print(
+        f"Baseline score: {result['score']:.2%} ({result['correct']}/{result['total']})"
+    )
     print(f"Duration: {result['duration_s']}s")
     if result.get("errors"):
         print(f"Misclassified: {len(result['errors'])} tickets")
         for e in result["errors"][:5]:
-            print(f"  '{e['text'][:50]}...' expected={e['expected']} got={e['predicted']}")
+            print(
+                f"  '{e['text'][:50]}...' expected={e['expected']} got={e['predicted']}"
+            )
 
 
 def cmd_evaluate():
@@ -119,21 +124,32 @@ def cmd_evaluate():
     entry = {
         "trial_id": f"trial-{state['trial_count']:03d}",
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "parent_state": f"trial-{state['trial_count']-1:03d}" if state["trial_count"] > 1 else "baseline",
+        "parent_state": f"trial-{state['trial_count'] - 1:03d}"
+        if state["trial_count"] > 1
+        else "baseline",
         "mutation": {"operator": "manual", "description": "Agent-applied mutation"},
-        "outcome": {"score": score, "correct": result["correct"], "total": result["total"],
-                     "duration_s": result["duration_s"], "constraints_passed": result.get("constraints_passed", True)},
+        "outcome": {
+            "score": score,
+            "correct": result["correct"],
+            "total": result["total"],
+            "duration_s": result["duration_s"],
+            "constraints_passed": result.get("constraints_passed", True),
+        },
         "decision": {"action": action, "reason": reason},
     }
     append_ledger(entry)
 
     icon = {"promoted": "+", "discarded": "=", "rejected": "X"}[action]
-    print(f"[{icon}] Trial {state['trial_count']}/{state['budget']}: {score:.2%} ({result['correct']}/{result['total']}) — {action}: {reason}")
+    t = state["trial_count"]
+    c, n = result["correct"], result["total"]
+    print(f"[{icon}] Trial {t}/{state['budget']}: {score:.2%} ({c}/{n})")
+    print(f"    {action}: {reason}")
 
     if result.get("errors"):
         print(f"    Misclassified ({len(result['errors'])}):")
         for e in result["errors"][:5]:
-            print(f"      '{e['text'][:50]}...' expected={e['expected']} got={e['predicted']}")
+            expected, got = e["expected"], e["predicted"]
+            print(f"      '{e['text'][:50]}...' {expected}->{got}")
         if len(result["errors"]) > 5:
             print(f"      ... and {len(result['errors']) - 5} more")
 
@@ -148,10 +164,18 @@ def cmd_rollback():
 
 def cmd_status():
     state = load_state()
-    print(f"Baseline:  {state['baseline_score']:.2%}" if state['baseline_score'] is not None else "Baseline:  not set")
-    print(f"Best:      {state['best_score']:.2%}" if state['best_score'] is not None else "Best:      not set")
+    print(
+        f"Baseline:  {state['baseline_score']:.2%}"
+        if state["baseline_score"] is not None
+        else "Baseline:  not set"
+    )
+    print(
+        f"Best:      {state['best_score']:.2%}"
+        if state["best_score"] is not None
+        else "Best:      not set"
+    )
     print(f"Trials:    {state['trial_count']}/{state['budget']}")
-    remaining = state['budget'] - state['trial_count']
+    remaining = state["budget"] - state["trial_count"]
     print(f"Remaining: {remaining}")
 
 
