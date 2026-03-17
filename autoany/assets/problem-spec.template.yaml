@@ -1,0 +1,77 @@
+# Autoany Problem Spec — EGRI Instance Definition
+# Fill this template to define a recursive improvement loop.
+# See references/PROBLEM-SPEC.md for field-by-field semantics.
+
+name: ""  # Human-readable problem name
+
+objective:
+  metric: ""           # e.g., "minimize validation_loss", "maximize throughput"
+  type: scalar         # scalar | vector
+  direction: minimize  # minimize | maximize
+  baseline: null       # Filled after Phase 2 (evaluator-first)
+
+constraints:
+  - ""  # e.g., "memory_mb <= 48000"
+  - ""  # e.g., "runtime_s <= 300"
+
+artifacts:
+  mutable:
+    - path: ""
+      type: code       # code | config | prompt | graph | parameters
+      description: ""
+  immutable:
+    - path: ""
+      reason: ""       # e.g., "evaluator — must not change during trials"
+
+evaluator:
+  script: ""           # Path to evaluation script or command
+  inputs: []           # What the evaluator reads
+  outputs: {}          # Structured score format
+  trusted: false       # Set true only after validating against known outcomes
+  baseline_score: null # Filled after running evaluator on initial artifact
+
+execution:
+  backend: local       # local | container | simulator | api | lab
+  command: ""          # Execution command template
+  timeout_s: 300       # Max seconds per trial
+  sandbox: true        # Whether execution is isolated
+
+budget:
+  max_trials: 50
+  time_per_trial_s: 300
+  total_time_s: null   # Overall time cap (null = no cap beyond per-trial)
+  token_budget: null   # LLM token cap for the loop
+  cost_budget: null    # Monetary cap
+
+promotion:
+  policy: keep_if_improves  # keep_if_improves | pareto | threshold | human_gate
+  threshold: null            # Minimum improvement to promote (null = any improvement)
+  require_constraint_check: true  # Always true, cannot be overridden
+
+autonomy:
+  mode: sandbox        # suggestion | sandbox | auto-promote | portfolio
+  escalation_triggers:
+    - "evaluator_score_degrades_3_consecutive_trials"
+    - "constraint_violation_detected"
+    - "budget_75_percent_exhausted_without_improvement"
+
+# Optional fields
+
+search:
+  proposer: llm        # llm | random | bayesian | evolutionary | hybrid
+  strategy_notes: ""   # Free-text guidance for the mutation proposer
+
+ledger:
+  format: jsonl        # jsonl | sqlite | tsv
+  path: "./ledger.jsonl"
+  schema: "./ledger.schema.json"
+
+domain:
+  preset: generic      # code | rag | workflow | etl | ui | generic
+  notes: ""
+
+meta:
+  created_by: ""
+  created_at: ""       # ISO timestamp
+  version: "0.1.0"
+  parent_spec: null    # Path to parent spec if this is a refinement
