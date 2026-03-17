@@ -156,7 +156,7 @@ meta:
 """
 
 
-def generate_eval_script(domain: str) -> str:
+def generate_eval_script() -> str:
     return """#!/usr/bin/env bash
 # Autoany evaluator stub
 # Replace this with your actual evaluation logic.
@@ -167,7 +167,7 @@ echo '{"score": 0.0, "constraints_passed": true, "constraint_violations": []}'
 """
 
 
-def generate_readme(name: str, domain: str) -> str:
+def generate_readme(name: str) -> str:
     return f"""# {name}
 
 An Autoany (EGRI) project — evaluator-governed recursive improvement.
@@ -240,7 +240,7 @@ def main():
     # Write evaluator stub
     eval_path = os.path.join(project_dir, "eval", "run_eval.sh")
     with open(eval_path, "w") as f:
-        f.write(generate_eval_script(args.domain))
+        f.write(generate_eval_script())
     os.chmod(eval_path, 0o755)
 
     # Write ledger schema
@@ -257,7 +257,7 @@ def main():
     # Write README
     readme_path = os.path.join(project_dir, "README.md")
     with open(readme_path, "w") as f:
-        f.write(generate_readme(args.name, args.domain))
+        f.write(generate_readme(args.name))
 
     # Write empty ledger
     ledger_path = os.path.join(project_dir, "ledger.jsonl")
