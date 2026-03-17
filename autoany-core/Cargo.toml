@@ -5,6 +5,12 @@ edition = "2024"
 description = "EGRI microkernel — Evaluator-Governed Recursive Improvement runtime"
 license = "MIT"
 repository = "https://github.com/broomva/autoany"
+homepage = "https://github.com/broomva/autoany"
+documentation = "https://docs.rs/autoany_core"
+readme = "README.md"
+authors = ["Carlos D. Escobar-Valbuena <broomva@gmail.com>"]
+keywords = ["egri", "optimization", "evaluator", "automl", "autoany"]
+categories = ["algorithms", "development-tools"]
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
