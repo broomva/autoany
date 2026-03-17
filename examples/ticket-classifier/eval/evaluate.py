@@ -29,8 +29,10 @@ def load_classifier(path):
 
 
 def main():
-    classifier_path = sys.argv[1] if len(sys.argv) > 1 else os.path.join(
-        os.path.dirname(__file__), "..", "artifacts", "classifier.py"
+    classifier_path = (
+        sys.argv[1]
+        if len(sys.argv) > 1
+        else os.path.join(os.path.dirname(__file__), "..", "artifacts", "classifier.py")
     )
 
     eval_set = load_eval_set()
@@ -47,18 +49,22 @@ def main():
             if prediction == item["label"]:
                 correct += 1
             else:
-                errors.append({
+                errors.append(
+                    {
+                        "text": item["text"],
+                        "expected": item["label"],
+                        "predicted": prediction,
+                    }
+                )
+        except Exception as e:
+            errors.append(
+                {
                     "text": item["text"],
                     "expected": item["label"],
-                    "predicted": prediction,
-                })
-        except Exception as e:
-            errors.append({
-                "text": item["text"],
-                "expected": item["label"],
-                "predicted": None,
-                "error": str(e),
-            })
+                    "predicted": None,
+                    "error": str(e),
+                }
+            )
     duration = time.time() - start
 
     accuracy = correct / total if total > 0 else 0.0

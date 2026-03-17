@@ -4,11 +4,7 @@ use crate::types::{Action, Decision, Direction, Outcome, Score, StateId};
 
 /// Decides whether to promote, discard, branch, or escalate a candidate.
 pub trait Selector {
-    fn select(
-        &self,
-        candidate_score: &Outcome,
-        best_score: &Outcome,
-    ) -> Result<Decision>;
+    fn select(&self, candidate_score: &Outcome, best_score: &Outcome) -> Result<Decision>;
 }
 
 /// Default selector implementing standard promotion policies.
@@ -43,11 +39,7 @@ impl DefaultSelector {
 }
 
 impl Selector for DefaultSelector {
-    fn select(
-        &self,
-        candidate: &Outcome,
-        best: &Outcome,
-    ) -> Result<Decision> {
+    fn select(&self, candidate: &Outcome, best: &Outcome) -> Result<Decision> {
         // Constraint check always comes first
         if !candidate.constraints_passed {
             return Ok(Decision {
@@ -115,9 +107,7 @@ impl Selector for DefaultSelector {
                 } else {
                     Ok(Decision {
                         action: Action::Discarded,
-                        reason: format!(
-                            "below threshold {threshold:.4} (score: {c_score:.4})"
-                        ),
+                        reason: format!("below threshold {threshold:.4} (score: {c_score:.4})"),
                         new_state_id: None,
                     })
                 }
@@ -136,5 +126,98 @@ impl Selector for DefaultSelector {
                 })
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_outcome(score: f64, passed: bool) -> Outcome {
+        Outcome {
+            score: Score::Scalar(score),
+            constraints_passed: passed,
+            constraint_violations: if passed {
+                vec![]
+            } else {
+                vec!["violated".into()]
+            },
+            evaluator_metadata: None,
+        }
+    }
+
+    #[test]
+    fn maximize_promotes_improvement() {
+        let sel = DefaultSelector::new(PromotionPolicy::KeepIfImproves, Direction::Maximize, None);
+        let best = make_outcome(0.7, true);
+        let candidate = make_outcome(0.9, true);
+        let d = sel.select(&candidate, &best).unwrap();
+        assert_eq!(d.action, Action::Promoted);
+    }
+
+    #[test]
+    fn maximize_discards_regression() {
+        let sel = DefaultSelector::new(PromotionPolicy::KeepIfImproves, Direction::Maximize, None);
+        let best = make_outcome(0.9, true);
+        let candidate = make_outcome(0.7, true);
+        let d = sel.select(&candidate, &best).unwrap();
+        assert_eq!(d.action, Action::Discarded);
+    }
+
+    #[test]
+    fn minimize_promotes_lower() {
+        let sel = DefaultSelector::new(PromotionPolicy::KeepIfImproves, Direction::Minimize, None);
+        let best = make_outcome(0.5, true);
+        let candidate = make_outcome(0.3, true);
+        let d = sel.select(&candidate, &best).unwrap();
+        assert_eq!(d.action, Action::Promoted);
+    }
+
+    #[test]
+    fn constraint_violation_always_discards() {
+        let sel = DefaultSelector::new(PromotionPolicy::KeepIfImproves, Direction::Maximize, None);
+        let best = make_outcome(0.5, true);
+        let candidate = make_outcome(0.9, false); // better score but violated
+        let d = sel.select(&candidate, &best).unwrap();
+        assert_eq!(d.action, Action::Discarded);
+    }
+
+    #[test]
+    fn threshold_with_minimum_delta() {
+        let sel = DefaultSelector::new(
+            PromotionPolicy::KeepIfImproves,
+            Direction::Maximize,
+            Some(0.1),
+        );
+        let best = make_outcome(0.7, true);
+
+        // Tiny improvement below threshold
+        let d = sel.select(&make_outcome(0.75, true), &best).unwrap();
+        assert_eq!(d.action, Action::Discarded);
+
+        // Improvement above threshold
+        let d = sel.select(&make_outcome(0.85, true), &best).unwrap();
+        assert_eq!(d.action, Action::Promoted);
+    }
+
+    #[test]
+    fn human_gate_always_escalates() {
+        let sel = DefaultSelector::new(PromotionPolicy::HumanGate, Direction::Maximize, None);
+        let d = sel
+            .select(&make_outcome(0.9, true), &make_outcome(0.5, true))
+            .unwrap();
+        assert_eq!(d.action, Action::Escalated);
+    }
+
+    #[test]
+    fn threshold_policy_maximize() {
+        let sel = DefaultSelector::new(PromotionPolicy::Threshold, Direction::Maximize, Some(0.8));
+        let best = make_outcome(0.5, true);
+
+        let d = sel.select(&make_outcome(0.85, true), &best).unwrap();
+        assert_eq!(d.action, Action::Promoted);
+
+        let d = sel.select(&make_outcome(0.7, true), &best).unwrap();
+        assert_eq!(d.action, Action::Discarded);
     }
 }

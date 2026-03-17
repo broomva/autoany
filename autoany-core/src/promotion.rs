@@ -32,10 +32,7 @@ impl<A: Clone> PromotionController<A> {
     pub fn apply_decision(&mut self, decision: &Decision, candidate: A) {
         match decision.action {
             Action::Promoted => {
-                let state_id = decision
-                    .new_state_id
-                    .clone()
-                    .unwrap_or_else(StateId::new);
+                let state_id = decision.new_state_id.clone().unwrap_or_default();
                 self.best_artifact = Some(candidate.clone());
                 self.best_state_id = Some(state_id.clone());
                 self.current_artifact = Some(candidate);
@@ -86,5 +83,78 @@ impl<A: Clone> PromotionController<A> {
 impl<A: Clone> Default for PromotionController<A> {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::types::StateId;
+
+    #[test]
+    fn baseline_sets_both_current_and_best() {
+        let mut pc: PromotionController<String> = PromotionController::new();
+        assert!(pc.current().is_none());
+        assert!(pc.best().is_none());
+
+        pc.set_baseline("v0".into());
+        assert_eq!(pc.current(), Some(&"v0".into()));
+        assert_eq!(pc.best(), Some(&"v0".into()));
+        assert_eq!(pc.current_state_id().unwrap().0, "baseline");
+    }
+
+    #[test]
+    fn promote_updates_both() {
+        let mut pc: PromotionController<String> = PromotionController::new();
+        pc.set_baseline("v0".into());
+
+        let decision = Decision {
+            action: Action::Promoted,
+            reason: "improved".into(),
+            new_state_id: Some(StateId("s1".into())),
+        };
+        pc.apply_decision(&decision, "v1".into());
+
+        assert_eq!(pc.current(), Some(&"v1".into()));
+        assert_eq!(pc.best(), Some(&"v1".into()));
+        assert_eq!(pc.best_state_id().unwrap().0, "s1");
+    }
+
+    #[test]
+    fn discard_restores_to_best() {
+        let mut pc: PromotionController<String> = PromotionController::new();
+        pc.set_baseline("v0".into());
+
+        let decision = Decision {
+            action: Action::Discarded,
+            reason: "no improvement".into(),
+            new_state_id: None,
+        };
+        pc.apply_decision(&decision, "v_bad".into());
+
+        assert_eq!(pc.current(), Some(&"v0".into()));
+        assert_eq!(pc.best(), Some(&"v0".into()));
+    }
+
+    #[test]
+    fn rollback_returns_best() {
+        let mut pc: PromotionController<String> = PromotionController::new();
+        pc.set_baseline("v0".into());
+
+        let promote = Decision {
+            action: Action::Promoted,
+            reason: "better".into(),
+            new_state_id: Some(StateId("s1".into())),
+        };
+        pc.apply_decision(&promote, "v1".into());
+
+        let rolled = pc.rollback().unwrap();
+        assert_eq!(rolled, &"v1".to_string());
+    }
+
+    #[test]
+    fn rollback_without_baseline_fails() {
+        let mut pc: PromotionController<String> = PromotionController::new();
+        assert!(pc.rollback().is_err());
     }
 }

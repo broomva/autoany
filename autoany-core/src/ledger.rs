@@ -33,7 +33,7 @@ impl Ledger {
             content
                 .lines()
                 .filter(|l| !l.trim().is_empty())
-                .map(|l| serde_json::from_str(l))
+                .map(serde_json::from_str)
                 .collect::<std::result::Result<Vec<_>, _>>()
                 .map_err(|e| EgriError::LedgerError(format!("parse error: {e}")))?
         } else {
@@ -50,10 +50,7 @@ impl Ledger {
     pub fn append(&mut self, record: TrialRecord) -> Result<()> {
         // Write to file if backed
         if let Some(path) = &self.file_path {
-            let mut file = OpenOptions::new()
-                .create(true)
-                .append(true)
-                .open(path)?;
+            let mut file = OpenOptions::new().create(true).append(true).open(path)?;
             let line = serde_json::to_string(&record)?;
             writeln!(file, "{line}")?;
         }
@@ -98,5 +95,144 @@ impl Ledger {
             .iter()
             .filter(|r| r.decision.action == action)
             .collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::types::*;
+    use chrono::Utc;
+
+    fn make_record(id: &str, action: Action) -> TrialRecord {
+        TrialRecord {
+            trial_id: TrialId(id.into()),
+            timestamp: Utc::now(),
+            parent_state: StateId::baseline(),
+            mutation: Mutation {
+                operator: "test".into(),
+                description: "test mutation".into(),
+                diff: None,
+                hypothesis: None,
+            },
+            execution: None,
+            outcome: Outcome {
+                score: Score::Scalar(1.0),
+                constraints_passed: true,
+                constraint_violations: vec![],
+                evaluator_metadata: None,
+            },
+            decision: Decision {
+                action,
+                reason: "test".into(),
+                new_state_id: None,
+            },
+            strategy_notes: None,
+        }
+    }
+
+    #[test]
+    fn in_memory_ledger_append_and_read() {
+        let mut ledger = Ledger::in_memory();
+        assert_eq!(ledger.records().len(), 0);
+
+        ledger
+            .append(make_record("baseline", Action::Promoted))
+            .unwrap();
+        ledger
+            .append(make_record("trial-001", Action::Discarded))
+            .unwrap();
+
+        assert_eq!(ledger.records().len(), 2);
+        assert_eq!(ledger.trial_count(), 1); // excludes baseline
+    }
+
+    #[test]
+    fn last_promoted() {
+        let mut ledger = Ledger::in_memory();
+        ledger
+            .append(make_record("baseline", Action::Promoted))
+            .unwrap();
+        ledger
+            .append(make_record("trial-001", Action::Discarded))
+            .unwrap();
+        ledger
+            .append(make_record("trial-002", Action::Promoted))
+            .unwrap();
+        ledger
+            .append(make_record("trial-003", Action::Discarded))
+            .unwrap();
+
+        let last = ledger.last_promoted().unwrap();
+        assert_eq!(last.trial_id.0, "trial-002");
+    }
+
+    #[test]
+    fn consecutive_non_improvements() {
+        let mut ledger = Ledger::in_memory();
+        ledger
+            .append(make_record("baseline", Action::Promoted))
+            .unwrap();
+        ledger
+            .append(make_record("trial-001", Action::Promoted))
+            .unwrap();
+        ledger
+            .append(make_record("trial-002", Action::Discarded))
+            .unwrap();
+        ledger
+            .append(make_record("trial-003", Action::Discarded))
+            .unwrap();
+        ledger
+            .append(make_record("trial-004", Action::Discarded))
+            .unwrap();
+
+        assert_eq!(ledger.consecutive_non_improvements(), 3);
+    }
+
+    #[test]
+    fn by_action_filter() {
+        let mut ledger = Ledger::in_memory();
+        ledger
+            .append(make_record("baseline", Action::Promoted))
+            .unwrap();
+        ledger
+            .append(make_record("trial-001", Action::Discarded))
+            .unwrap();
+        ledger
+            .append(make_record("trial-002", Action::Promoted))
+            .unwrap();
+
+        assert_eq!(ledger.by_action(Action::Promoted).len(), 2);
+        assert_eq!(ledger.by_action(Action::Discarded).len(), 1);
+        assert_eq!(ledger.by_action(Action::Escalated).len(), 0);
+    }
+
+    #[test]
+    fn file_backed_ledger_persistence() {
+        let dir = std::env::temp_dir().join("autoany_test_ledger");
+        let _ = std::fs::create_dir_all(&dir);
+        let path = dir.join("test_ledger.jsonl");
+        let _ = std::fs::remove_file(&path);
+
+        // Write
+        {
+            let mut ledger = Ledger::with_file(&path).unwrap();
+            ledger
+                .append(make_record("baseline", Action::Promoted))
+                .unwrap();
+            ledger
+                .append(make_record("trial-001", Action::Discarded))
+                .unwrap();
+        }
+
+        // Re-read
+        {
+            let ledger = Ledger::with_file(&path).unwrap();
+            assert_eq!(ledger.records().len(), 2);
+            assert_eq!(ledger.records()[0].trial_id.0, "baseline");
+            assert_eq!(ledger.records()[1].trial_id.0, "trial-001");
+        }
+
+        let _ = std::fs::remove_file(&path);
     }
 }

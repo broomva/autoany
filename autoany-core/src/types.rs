@@ -171,3 +171,65 @@ pub enum AutonomyMode {
     AutoPromote,
     Portfolio,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn score_scalar_access() {
+        let s = Score::Scalar(0.95);
+        assert_eq!(s.as_scalar(), Some(0.95));
+        assert_eq!(s.get("score"), Some(0.95));
+        assert_eq!(s.get("other"), None);
+    }
+
+    #[test]
+    fn score_vector_access() {
+        let mut map = std::collections::HashMap::new();
+        map.insert("accuracy".into(), 0.9);
+        map.insert("latency".into(), 0.5);
+        let s = Score::Vector(map);
+        assert_eq!(s.as_scalar(), None);
+        assert_eq!(s.get("accuracy"), Some(0.9));
+        assert_eq!(s.get("latency"), Some(0.5));
+        assert_eq!(s.get("missing"), None);
+    }
+
+    #[test]
+    fn trial_id_formatting() {
+        assert_eq!(TrialId::new(1).to_string(), "trial-001");
+        assert_eq!(TrialId::new(42).to_string(), "trial-042");
+        assert_eq!(TrialId::baseline().to_string(), "baseline");
+    }
+
+    #[test]
+    fn state_id_baseline() {
+        let s = StateId::baseline();
+        assert_eq!(s.0, "baseline");
+    }
+
+    #[test]
+    fn action_display() {
+        assert_eq!(Action::Promoted.to_string(), "promoted");
+        assert_eq!(Action::Discarded.to_string(), "discarded");
+        assert_eq!(Action::Escalated.to_string(), "escalated");
+        assert_eq!(Action::Branched.to_string(), "branched");
+    }
+
+    #[test]
+    fn score_serde_roundtrip() {
+        let scalar = Score::Scalar(3.14);
+        let json = serde_json::to_string(&scalar).unwrap();
+        let back: Score = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.as_scalar().unwrap(), 3.14);
+    }
+
+    #[test]
+    fn action_serde_roundtrip() {
+        let json = serde_json::to_string(&Action::Promoted).unwrap();
+        assert_eq!(json, "\"promoted\"");
+        let back: Action = serde_json::from_str(&json).unwrap();
+        assert_eq!(back, Action::Promoted);
+    }
+}

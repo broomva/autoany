@@ -122,10 +122,7 @@ where
     pub fn step(&mut self) -> Result<TrialRecord> {
         self.budget.check()?;
 
-        let best_outcome = self
-            .best_outcome
-            .as_ref()
-            .ok_or(EgriError::NoBaseline)?;
+        let best_outcome = self.best_outcome.as_ref().ok_or(EgriError::NoBaseline)?;
 
         let current = self
             .promotion
