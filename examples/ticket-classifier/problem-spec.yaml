@@ -1,0 +1,73 @@
+# Autoany Problem Spec — ticket-classifier
+# Domain preset: code
+# Generated: 2026-03-17T16:55:56.644647+00:00
+
+name: "ticket-classifier"
+
+objective:
+  metric: "minimize test_failure_rate"
+  type: scalar
+  direction: minimize
+  baseline: null
+
+constraints:
+  - "runtime_s <= 300"
+
+artifacts:
+  mutable:
+    - path: "src/"
+      type: code
+      description: "Source code under optimization"
+  immutable:
+    - path: "tests/"
+      reason: "Test suite — evaluator must not change during trials"
+
+evaluator:
+  script: "eval/run_eval.sh"
+  inputs: []
+  outputs: {}
+  trusted: false
+  baseline_score: null
+
+execution:
+  backend: local
+  command: ""
+  timeout_s: 300
+  sandbox: true
+
+budget:
+  max_trials: 50
+  time_per_trial_s: 300
+  total_time_s: null
+  token_budget: null
+  cost_budget: null
+
+promotion:
+  policy: keep_if_improves
+  threshold: null
+  require_constraint_check: true
+
+autonomy:
+  mode: sandbox
+  escalation_triggers:
+    - "evaluator_score_degrades_3_consecutive_trials"
+    - "constraint_violation_detected"
+    - "budget_75_percent_exhausted_without_improvement"
+
+search:
+  proposer: llm
+  strategy_notes: ""
+
+ledger:
+  format: jsonl
+  path: "./ledger.jsonl"
+
+domain:
+  preset: code
+  notes: ""
+
+meta:
+  created_by: "autoany_init"
+  created_at: "2026-03-17T16:55:56.644647+00:00"
+  version: "0.1.0"
+  parent_spec: null

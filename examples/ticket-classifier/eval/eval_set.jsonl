@@ -1,0 +1,30 @@
+{"text": "My payment was charged twice for order #4521", "label": "billing"}
+{"text": "I can't log into my account, password reset not working", "label": "account"}
+{"text": "The app crashes when I try to upload a photo", "label": "bug"}
+{"text": "How do I change my subscription plan?", "label": "billing"}
+{"text": "I want to delete my account permanently", "label": "account"}
+{"text": "The checkout page shows a 500 error", "label": "bug"}
+{"text": "Can I get a refund for last month?", "label": "billing"}
+{"text": "Two-factor authentication is not sending codes", "label": "account"}
+{"text": "Search results are returning wrong items", "label": "bug"}
+{"text": "Where can I download my invoice?", "label": "billing"}
+{"text": "I forgot my username, how do I recover it?", "label": "account"}
+{"text": "The page takes forever to load on mobile", "label": "bug"}
+{"text": "I was overcharged on my last bill", "label": "billing"}
+{"text": "How do I update my email address?", "label": "account"}
+{"text": "Button does nothing when I click submit", "label": "bug"}
+{"text": "Do you offer a student discount?", "label": "billing"}
+{"text": "I can't link my social media account", "label": "account"}
+{"text": "Dark mode makes some text invisible", "label": "bug"}
+{"text": "When will my refund be processed?", "label": "billing"}
+{"text": "I keep getting logged out every 5 minutes", "label": "account"}
+{"text": "The notification bell shows wrong count", "label": "bug"}
+{"text": "How do I cancel my subscription?", "label": "billing"}
+{"text": "My profile picture won't update", "label": "account"}
+{"text": "Export to PDF generates blank file", "label": "bug"}
+{"text": "I need a receipt for tax purposes", "label": "billing"}
+{"text": "Can I merge two accounts?", "label": "account"}
+{"text": "Video playback stutters on Chrome", "label": "bug"}
+{"text": "Why was I charged after canceling?", "label": "billing"}
+{"text": "How do I enable login notifications?", "label": "account"}
+{"text": "Drag and drop is broken in Firefox", "label": "bug"}
