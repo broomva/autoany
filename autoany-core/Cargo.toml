@@ -1,0 +1,23 @@
+[package]
+name = "autoany_core"
+version = "0.1.0"
+edition = "2024"
+description = "EGRI microkernel — Evaluator-Governed Recursive Improvement runtime"
+license = "MIT"
+repository = "https://github.com/broomva/autoany"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+thiserror = "2"
+tokio = { version = "1", features = ["full"], optional = true }
+tracing = "0.1"
+
+[features]
+default = []
+async = ["tokio"]
+
+[dev-dependencies]
+tokio = { version = "1", features = ["full"] }
