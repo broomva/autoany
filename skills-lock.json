@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "autoany": {
+      "source": "broomva/autoany",
+      "sourceType": "github",
+      "computedHash": "aeebda92653cc289c20c912e302dfbb57eed5f84affe27575b1a30538fec98f5"
+    }
+  }
+}
