@@ -16,15 +16,19 @@
 
 pub mod budget;
 pub mod constraint;
+pub mod dead_ends;
 pub mod error;
 pub mod evaluator;
 pub mod executor;
+pub mod inheritance;
 pub mod ledger;
 pub mod loop_engine;
 pub mod promotion;
 pub mod proposer;
 pub mod selector;
 pub mod spec;
+pub mod stagnation;
+pub mod strategy;
 pub mod types;
 
 pub use error::{EgriError, Result};

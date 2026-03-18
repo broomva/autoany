@@ -4,6 +4,9 @@
 
 - `autoany/` — Agent skill (Python): problem compilation, scaffolding, EGRI doctrine
 - `autoany-core/` — Rust microkernel: loop orchestrator, traits, ledger, budget, promotion
+  - New: `dead_ends.rs`, `stagnation.rs`, `strategy.rs`, `inheritance.rs`
+- `autoany-aios/` — Arcan runtime adapter: EGRI execution via Arcan HTTP sessions
+- `autoany-lago/` — Lago persistence adapter: EGRI trials as EventKind::Custom with "egri." prefix
 - `examples/` — End-to-end demos (ticket-classifier)
 
 ## Commands
@@ -14,6 +17,10 @@ make test        # Run all tests (Rust + Python)
 make build       # Build Rust crate
 make smoke       # Quick validation: build + check + test
 make fmt         # Auto-format all code
+
+# Adapter crates (standalone, not in workspace)
+cd autoany-aios && cargo test    # 9 tests
+cd autoany-lago && cargo test    # 10 tests
 ```
 
 ## Architecture Rules

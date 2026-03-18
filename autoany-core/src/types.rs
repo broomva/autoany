@@ -219,10 +219,10 @@ mod tests {
 
     #[test]
     fn score_serde_roundtrip() {
-        let scalar = Score::Scalar(3.14);
+        let scalar = Score::Scalar(3.125);
         let json = serde_json::to_string(&scalar).unwrap();
         let back: Score = serde_json::from_str(&json).unwrap();
-        assert_eq!(back.as_scalar().unwrap(), 3.14);
+        assert_eq!(back.as_scalar().unwrap(), 3.125);
     }
 
     #[test]

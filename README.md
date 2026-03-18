@@ -113,6 +113,24 @@ python3 autoany/scripts/autoany_init.py my-project --domain rag --path ./project
 | 2 | Budget allocation across loops |
 | 3 | The organizational rules governing everything |
 
+## Adapter Crates
+
+| Crate | Purpose |
+|-------|---------|
+| **autoany-aios** | Connects EGRI loops to the [Arcan](https://github.com/broomva/arcan) runtime for execution. Wraps Arcan HTTP sessions so trials run inside managed agent environments. |
+| **autoany-lago** | Persists EGRI trial records to a [Lago](https://github.com/broomva/lago) journal. Stores trials as `EventKind::Custom` entries with an `"egri."` prefix for easy querying. |
+
+Both adapter crates are standalone (not part of the workspace) and have their own test suites.
+
+### New autoany-core Modules
+
+| Module | Role |
+|--------|------|
+| `dead_ends.rs` | Tracks explored-and-rejected mutation paths to avoid revisiting them |
+| `stagnation.rs` | Detects when the loop stops making progress and triggers policy changes |
+| `strategy.rs` | Distills reusable search strategies from trial history (Level 1 meta-loop) |
+| `inheritance.rs` | Carries learned strategies and dead-end knowledge across independent runs |
+
 ## Roadmap
 
 - [x] EGRI formal model and doctrine
@@ -120,11 +138,12 @@ python3 autoany/scripts/autoany_init.py my-project --domain rag --path ./project
 - [x] Domain presets (code, RAG, workflow, ETL, UI)
 - [x] Scaffold initializer
 - [x] Ledger schema
-- [ ] `autoany-core` — reusable loop microkernel
-- [ ] Executor abstraction + adapters
+- [x] `autoany-core` — reusable loop microkernel
+- [x] Dead-end tracking, stagnation detection, strategy distillation, cross-run inheritance
+- [x] Arcan runtime adapter (`autoany-aios`)
+- [x] Lago persistence adapter (`autoany-lago`)
 - [ ] Evaluator abstraction + adapters
 - [ ] Selector (promotion controller)
-- [ ] Strategy distiller (Level 1 meta-loop)
 - [ ] Portfolio manager (Level 2)
 
 ## License
