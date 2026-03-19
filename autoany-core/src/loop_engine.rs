@@ -256,6 +256,22 @@ where
         self.promotion.best()
     }
 
+    /// Current best score for hive reporting.
+    pub fn best_score(&self) -> Option<&Score> {
+        self.best_outcome.as_ref().map(|o| &o.score)
+    }
+
+    /// Inject trial records from another agent's history (cross-pollination).
+    ///
+    /// These records are appended to the ledger for the proposer to learn from
+    /// but do not affect the current promotion state.
+    pub fn inject_history(&mut self, records: Vec<TrialRecord>) -> Result<()> {
+        for record in records {
+            self.ledger.append(record)?;
+        }
+        Ok(())
+    }
+
     /// Rollback to last promoted state.
     pub fn rollback(&mut self) -> Result<&A> {
         self.promotion.rollback()
