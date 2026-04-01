@@ -15,6 +15,7 @@
 //! ```
 
 pub mod budget;
+pub mod comparative_evaluator;
 pub mod constraint;
 pub mod dead_ends;
 pub mod error;
@@ -22,6 +23,7 @@ pub mod evaluator;
 pub mod executor;
 pub mod inheritance;
 pub mod ledger;
+pub mod llm_backend;
 pub mod loop_engine;
 pub mod promotion;
 pub mod proposer;

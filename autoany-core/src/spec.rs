@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::types::{AutonomyMode, Direction};
+use crate::types::{AutonomyMode, DebateConfig, Direction};
 
 /// Problem specification — the compiled EGRI instance definition.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -16,6 +16,12 @@ pub struct ProblemSpec {
     pub autonomy: Autonomy,
     #[serde(default)]
     pub search: Option<Search>,
+    /// Debate configuration (required when `promotion.policy == "comparative"`).
+    #[serde(default)]
+    pub debate: Option<DebateSpec>,
+    /// Task description providing context for debate evaluation.
+    #[serde(default)]
+    pub task: Option<TaskSpec>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -94,6 +100,9 @@ pub enum PromotionPolicy {
     Pareto,
     Threshold,
     HumanGate,
+    /// Autoreason debate evaluation — uses adversarial multi-agent debate
+    /// with blind judge panel instead of scalar comparison.
+    Comparative,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -113,4 +122,25 @@ pub struct Search {
 
 fn default_proposer() -> String {
     "llm".to_string()
+}
+
+/// Debate configuration for comparative evaluation.
+///
+/// Required when `promotion.policy` is `comparative`. Wraps [`DebateConfig`]
+/// with additional problem-spec-level fields.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DebateSpec {
+    /// Core debate protocol configuration.
+    #[serde(flatten)]
+    pub config: DebateConfig,
+}
+
+/// Task description providing context for debate evaluation.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TaskSpec {
+    /// The original task brief — what the artifact is supposed to accomplish.
+    pub description: String,
+    /// Evaluation criteria for judges (optional, supplements rubric).
+    #[serde(default)]
+    pub criteria: Vec<String>,
 }
