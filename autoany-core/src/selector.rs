@@ -125,6 +125,15 @@ impl Selector for DefaultSelector {
                     new_state_id: None,
                 })
             }
+            PromotionPolicy::Comparative => {
+                // Comparative evaluation is handled by DebateLoop, not DefaultSelector.
+                // If this is reached, the problem is misconfigured.
+                Ok(Decision {
+                    action: Action::Escalated,
+                    reason: "comparative policy requires DebateLoop, not EgriLoop".into(),
+                    new_state_id: None,
+                })
+            }
         }
     }
 }
