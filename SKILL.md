@@ -129,3 +129,39 @@ Read `references/META-LOOP.md` for Level 1-3 loops (policy, portfolio, org).
 ```bash
 python3 scripts/autoany_init.py <project-name> --domain <code|rag|workflow|etl|ui|generic> --path <output-dir>
 ```
+
+## Controlled negative evidence
+
+Absence-sensitive evaluators must emit `evidence` alongside score and
+constraints, using the record in `autoany/assets/ledger.schema.json` (or
+`assets/ledger.schema.json` within the installed skill). Record `claim`,
+`conditions` including detection limits, `observation_ref`, `positive_control`,
+`control_ref`, `target_outcome`, `falsification_criterion`, `absence_refutes`
+and `claim_verdict`. Keep this evidence separate from the numeric score.
+
+A controlled target signal is `detected`. A target null is `refuted` only when
+the same-path positive control fired **and** absence meets a falsification rule
+declared before the run. Otherwise use `not_detected`. Missing, failed or
+unverified controls require `inconclusive_no_positive_control`; target errors
+or skips with a live control are `inconclusive`. Do not treat any of these
+inconclusive states as a measured zero or failed subject.
+
+The core derives this conclusion from the inputs and checks the reported
+verdict. Inconsistent or inconclusive evidence cannot establish a baseline;
+candidate trials escalate and are logged before any selector can promote them.
+Legacy numeric evaluators may omit `evidence` for compatibility; this is not
+proof they included controls. Rust literal constructors now require
+`evidence: None` or `Some(...)`. Absence-sensitive adapters must populate it.
+The generated evaluator stub now records an unimplemented, inconclusive result
+with failed constraints, never a ready-to-promote baseline.
+
+Malformed evaluator reports are preserved in
+`evaluator_metadata.rejected_evidence`. The canonical evidence verdict is
+re-derived; if required reference/condition text is missing, that canonical
+evidence is omitted rather than fabricated. Such a trial still escalates with
+failed constraints, even if normalization would make its verdict conclusive.
+
+The loop also enforces failed constraints before baseline establishment and
+custom selection. Reusing a quarantined outcome cannot turn its omitted
+canonical evidence into a legacy-compatible pass: its failed constraints remain
+binding, and the reused candidate is discarded.

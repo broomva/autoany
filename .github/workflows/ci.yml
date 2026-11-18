@@ -59,8 +59,11 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install Rust for runtime/schema integration test
+        uses: dtolnay/rust-toolchain@stable
+
       - name: Install dependencies
-        run: pip install pytest ruff
+        run: pip install pytest ruff jsonschema
 
       - name: Ruff lint
         run: ruff check autoany/scripts/ tests/ examples/ --select E,F,W

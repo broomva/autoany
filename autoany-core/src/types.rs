@@ -98,15 +98,161 @@ pub struct ExecutionResult {
     pub output: Option<serde_json::Value>,
 }
 
+/// Target observation, independent of the conclusion drawn from it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TargetOutcome {
+    /// Signal detected under the recorded conditions.
+    Detected,
+    /// No signal above the declared detection threshold.
+    NotDetected,
+    /// Measurement failed.
+    Error,
+    /// Measurement did not run.
+    Skipped,
+}
+
+/// Same-path positive control status; only Pass establishes sensitivity.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PositiveControl {
+    /// Control fired and has a receipt.
+    Pass,
+    /// Control ran and failed.
+    Fail,
+    /// Control not included or not verified.
+    Missing,
+    /// Control crashed.
+    Error,
+    /// Control did not run.
+    Skipped,
+}
+
+/// Epistemic conclusion, separate from score and constraints.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ClaimVerdict {
+    /// Controlled target signal observed.
+    Detected,
+    /// A predeclared prediction failed with a live, relevant control.
+    Refuted,
+    /// Target absent, but absence is not sufficient to refute the claim.
+    NotDetected,
+    /// No verified positive control; target output is uninterpretable.
+    InconclusiveNoPositiveControl,
+    /// Measurement error or skipped target.
+    Inconclusive,
+}
+
+/// Evidence for an absence-sensitive evaluator. References carry no secrets.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EvaluationEvidence {
+    /// Claim being tested, scoped to conditions.
+    pub claim: String,
+    /// Run conditions and detection limits.
+    pub conditions: String,
+    /// Reference to raw target output.
+    pub observation_ref: String,
+    /// Relevant positive control result.
+    pub positive_control: PositiveControl,
+    /// Reference to the same-path control receipt.
+    pub control_ref: Option<String>,
+    /// Target output, distinct from the conclusion.
+    pub target_outcome: TargetOutcome,
+    /// Falsification rule declared before observing the target.
+    pub falsification_criterion: String,
+    /// Whether a controlled null meets that rule.
+    pub absence_refutes: bool,
+    /// Reported verdict; checked against observations before promotion.
+    pub claim_verdict: ClaimVerdict,
+}
+
+impl EvaluationEvidence {
+    /// Derive the verdict without mistaking a failed instrument for refutation.
+    pub fn derived_verdict(&self) -> ClaimVerdict {
+        if self.positive_control != PositiveControl::Pass {
+            return ClaimVerdict::InconclusiveNoPositiveControl;
+        }
+        match self.target_outcome {
+            TargetOutcome::Error | TargetOutcome::Skipped => ClaimVerdict::Inconclusive,
+            TargetOutcome::Detected => ClaimVerdict::Detected,
+            TargetOutcome::NotDetected if self.absence_refutes => ClaimVerdict::Refuted,
+            TargetOutcome::NotDetected => ClaimVerdict::NotDetected,
+        }
+    }
+
+    /// Validate receipt structure and agreement with the observed control/target.
+    /// This cannot prove that referenced evidence is truthful or relevant.
+    pub fn is_consistent(&self) -> bool {
+        let references_present = [
+            &self.claim,
+            &self.conditions,
+            &self.observation_ref,
+            &self.falsification_criterion,
+        ]
+        .iter()
+        .all(|s| !s.trim().is_empty());
+        references_present
+            && (self.positive_control != PositiveControl::Pass
+                || self
+                    .control_ref
+                    .as_ref()
+                    .is_some_and(|s| !s.trim().is_empty()))
+            && self.claim_verdict == self.derived_verdict()
+    }
+
+    /// Only a consistent conclusive result can support promotion.
+    pub fn allows_promotion(&self) -> bool {
+        self.is_consistent()
+            && matches!(
+                self.claim_verdict,
+                ClaimVerdict::Detected | ClaimVerdict::Refuted
+            )
+    }
+}
+
 /// Outcome from evaluation: score + constraint status.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Outcome {
+    /// Optional for legacy scalar evaluators; required for absence-sensitive evaluations.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub evidence: Option<EvaluationEvidence>,
     pub score: Score,
     pub constraints_passed: bool,
     #[serde(default)]
     pub constraint_violations: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub evaluator_metadata: Option<serde_json::Value>,
+}
+
+impl Outcome {
+    /// Preserve malformed reports separately while keeping canonical ledger
+    /// evidence consistent. Call only after deciding against promotion.
+    pub(crate) fn prepare_for_ledger(&mut self) {
+        if let Some(evidence) = self.evidence.as_mut()
+            && !evidence.is_consistent()
+        {
+            self.evaluator_metadata = Some(serde_json::json!({
+                "rejected_evidence": evidence.clone(),
+                "original_metadata": self.evaluator_metadata.take(),
+            }));
+            evidence.claim_verdict = evidence.derived_verdict();
+            if !evidence.is_consistent() {
+                // Missing reference/condition text cannot be fabricated.
+                self.evidence = None;
+            }
+            self.constraints_passed = false;
+            self.constraint_violations
+                .push("invalid evaluation evidence".into());
+        }
+    }
+
+    /// Legacy evaluators retain their behavior. Explicit evidence fails closed.
+    pub fn evidence_allows_promotion(&self) -> bool {
+        self.evidence
+            .as_ref()
+            .is_none_or(EvaluationEvidence::allows_promotion)
+    }
 }
 
 /// Decision made about a trial candidate.

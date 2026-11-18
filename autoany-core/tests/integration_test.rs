@@ -82,6 +82,7 @@ impl Evaluator for TestEvaluator {
             .ok_or_else(|| EgriError::EvaluationFailed("no score".into()))?;
 
         Ok(Outcome {
+            evidence: None,
             score: Score::Scalar(score),
             constraints_passed: true,
             constraint_violations: vec![],

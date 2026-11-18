@@ -27,7 +27,10 @@
     },
     "mutation": {
       "type": "object",
-      "required": ["operator", "description"],
+      "required": [
+        "operator",
+        "description"
+      ],
       "properties": {
         "operator": {
           "type": "string",
@@ -43,7 +46,7 @@
         },
         "hypothesis": {
           "type": "string",
-          "description": "Why this mutation was proposed — the reasoning"
+          "description": "Why this mutation was proposed \u2014 the reasoning"
         }
       }
     },
@@ -63,20 +66,33 @@
           "type": "integer"
         },
         "error": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Error message if execution failed"
         }
       }
     },
     "outcome": {
       "type": "object",
-      "required": ["score", "constraints_passed"],
+      "required": [
+        "score",
+        "constraints_passed"
+      ],
       "properties": {
         "score": {
-          "description": "Evaluator output — scalar number or object for vector metrics",
+          "description": "Evaluator output \u2014 scalar number or object for vector metrics",
           "oneOf": [
-            { "type": "number" },
-            { "type": "object", "additionalProperties": { "type": "number" } }
+            {
+              "type": "number"
+            },
+            {
+              "type": "object",
+              "additionalProperties": {
+                "type": "number"
+              }
+            }
           ]
         },
         "constraints_passed": {
@@ -85,23 +101,227 @@
         },
         "constraint_violations": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "List of violated constraints (empty if all passed)"
         },
         "evaluator_metadata": {
           "type": "object",
           "description": "Additional evaluator output (confusion matrix, per-sample scores, etc.)",
           "additionalProperties": true
+        },
+        "evidence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "claim",
+            "conditions",
+            "observation_ref",
+            "positive_control",
+            "control_ref",
+            "target_outcome",
+            "falsification_criterion",
+            "absence_refutes",
+            "claim_verdict"
+          ],
+          "properties": {
+            "claim": {
+              "type": "string",
+              "pattern": "\\S"
+            },
+            "conditions": {
+              "type": "string",
+              "pattern": "\\S"
+            },
+            "observation_ref": {
+              "type": "string",
+              "pattern": "\\S"
+            },
+            "falsification_criterion": {
+              "type": "string",
+              "pattern": "\\S"
+            },
+            "positive_control": {
+              "enum": [
+                "pass",
+                "fail",
+                "missing",
+                "error",
+                "skipped"
+              ]
+            },
+            "control_ref": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "target_outcome": {
+              "enum": [
+                "detected",
+                "not_detected",
+                "error",
+                "skipped"
+              ]
+            },
+            "absence_refutes": {
+              "type": "boolean"
+            },
+            "claim_verdict": {
+              "enum": [
+                "detected",
+                "refuted",
+                "not_detected",
+                "inconclusive_no_positive_control",
+                "inconclusive"
+              ]
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "positive_control": {
+                    "const": "pass"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "control_ref": {
+                    "type": "string",
+                    "pattern": "\\S"
+                  }
+                }
+              },
+              "else": {
+                "properties": {
+                  "claim_verdict": {
+                    "const": "inconclusive_no_positive_control"
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "positive_control": {
+                    "const": "pass"
+                  },
+                  "target_outcome": {
+                    "const": "detected"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "claim_verdict": {
+                    "const": "detected"
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "positive_control": {
+                    "const": "pass"
+                  },
+                  "target_outcome": {
+                    "const": "error"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "claim_verdict": {
+                    "const": "inconclusive"
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "positive_control": {
+                    "const": "pass"
+                  },
+                  "target_outcome": {
+                    "const": "skipped"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "claim_verdict": {
+                    "const": "inconclusive"
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "positive_control": {
+                    "const": "pass"
+                  },
+                  "target_outcome": {
+                    "const": "not_detected"
+                  },
+                  "absence_refutes": {
+                    "const": true
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "claim_verdict": {
+                    "const": "refuted"
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "positive_control": {
+                    "const": "pass"
+                  },
+                  "target_outcome": {
+                    "const": "not_detected"
+                  },
+                  "absence_refutes": {
+                    "const": false
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "claim_verdict": {
+                    "const": "not_detected"
+                  }
+                }
+              }
+            }
+          ]
         }
       }
     },
     "decision": {
       "type": "object",
-      "required": ["action"],
+      "required": [
+        "action"
+      ],
       "properties": {
         "action": {
           "type": "string",
-          "enum": ["promoted", "discarded", "branched", "escalated"],
+          "enum": [
+            "promoted",
+            "discarded",
+            "branched",
+            "escalated"
+          ],
           "description": "What happened to this candidate"
         },
         "reason": {
@@ -109,14 +329,59 @@
           "description": "Why this decision was made"
         },
         "new_state_id": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Identifier of the new promoted state (null if discarded)"
         }
       }
     },
     "strategy_notes": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Post-trial observations for strategy distillation"
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "outcome": {
+            "required": [
+              "evidence"
+            ],
+            "properties": {
+              "evidence": {
+                "properties": {
+                  "claim_verdict": {
+                    "enum": [
+                      "not_detected",
+                      "inconclusive",
+                      "inconclusive_no_positive_control"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "decision": {
+            "properties": {
+              "action": {
+                "not": {
+                  "const": "promoted"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
 }
