@@ -89,6 +89,11 @@ where
         let exec_result = self.executor.execute(&artifact)?;
         let outcome = self.evaluator.evaluate(&artifact, &exec_result)?;
 
+        if !outcome.evidence_allows_promotion() {
+            return Err(EgriError::EvaluationFailed(
+                "baseline evidence is inconclusive or inconsistent".into(),
+            ));
+        }
         self.promotion.set_baseline(artifact);
         self.best_outcome = Some(outcome.clone());
 
@@ -154,6 +159,7 @@ where
                     mutation,
                     execution: None,
                     outcome: Outcome {
+                        evidence: None,
                         score: Score::Scalar(0.0),
                         constraints_passed: false,
                         constraint_violations: vec![format!("execution failed: {e}")],
@@ -175,7 +181,16 @@ where
         let outcome = self.evaluator.evaluate(&candidate, &exec_result)?;
 
         // Select
-        let decision = self.selector.select(&outcome, best_outcome)?;
+        // Enforce before even a custom selector can promote an invalid null.
+        let decision = if outcome.evidence_allows_promotion() {
+            self.selector.select(&outcome, best_outcome)?
+        } else {
+            Decision {
+                action: Action::Escalated,
+                reason: "inconclusive or inconsistent evaluation evidence".into(),
+                new_state_id: None,
+            }
+        };
 
         info!(
             score = ?outcome.score,

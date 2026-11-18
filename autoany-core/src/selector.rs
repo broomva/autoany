@@ -40,6 +40,13 @@ impl DefaultSelector {
 
 impl Selector for DefaultSelector {
     fn select(&self, candidate: &Outcome, best: &Outcome) -> Result<Decision> {
+        if !candidate.evidence_allows_promotion() || !best.evidence_allows_promotion() {
+            return Ok(Decision {
+                action: Action::Escalated,
+                reason: "inconclusive or inconsistent evaluation evidence".into(),
+                new_state_id: None,
+            });
+        }
         // Constraint check always comes first
         if !candidate.constraints_passed {
             return Ok(Decision {
@@ -144,6 +151,7 @@ mod tests {
 
     fn make_outcome(score: f64, passed: bool) -> Outcome {
         Outcome {
+            evidence: None,
             score: Score::Scalar(score),
             constraints_passed: passed,
             constraint_violations: if passed {

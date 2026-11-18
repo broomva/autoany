@@ -98,6 +98,7 @@ mod tests {
                 },
                 execution: None,
                 outcome: Outcome {
+                    evidence: None,
                     score: Score::Scalar(0.5),
                     constraints_passed: true,
                     constraint_violations: vec![],
@@ -125,6 +126,7 @@ mod tests {
                 },
                 execution: None,
                 outcome: Outcome {
+                    evidence: None,
                     score: Score::Scalar(0.8),
                     constraints_passed: true,
                     constraint_violations: vec![],

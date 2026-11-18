@@ -79,6 +79,7 @@ impl Evaluator for SimpleEvaluator {
             .ok_or_else(|| EgriError::EvaluationFailed("no score in output".into()))?;
 
         Ok(Outcome {
+            evidence: None,
             score: Score::Scalar(score),
             constraints_passed: true,
             constraint_violations: vec![],
@@ -206,6 +207,7 @@ fn test_constraint_violation_discards() {
             let score = exec.output.as_ref().unwrap()["score"].as_f64().unwrap();
             let passes = score <= 9.0;
             Ok(Outcome {
+                evidence: None,
                 score: Score::Scalar(score),
                 constraints_passed: passes,
                 constraint_violations: if passes {

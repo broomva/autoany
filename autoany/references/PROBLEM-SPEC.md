@@ -87,3 +87,15 @@ List of artifacts that must NOT be modified during the loop:
 - `created_at`: ISO timestamp
 - `version`: Spec version (current: `0.1.0`)
 - `parent_spec`: Path to parent spec if this is a refinement
+
+## Absence-sensitive output contract
+
+An evaluator of missing/blocked output emits the `evidence` object from
+`assets/ledger.schema.json`. Declare the claim, detection limits and
+falsification criterion before running; record raw target/control references.
+Only `positive_control: pass` licenses a conclusive result. A controlled null
+is `refuted` only when `absence_refutes: true`; otherwise `not_detected`.
+Missing/failed/unverified controls are `inconclusive_no_positive_control`.
+Errors/skips are `inconclusive` with a live control. The Rust loop rejects
+inconclusive baselines and escalates inconclusive candidates before selection.
+Legacy scalar outcomes omit evidence; they do not certify that a control ran.

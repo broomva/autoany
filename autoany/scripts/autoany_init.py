@@ -215,10 +215,27 @@ def generate_eval_script() -> str:
     return """#!/usr/bin/env bash
 # Autoany evaluator stub
 # Replace this with your actual evaluation logic.
-# Must output JSON to stdout with at least a "score" field.
+# An unimplemented evaluator must never produce promotable evidence.
 set -euo pipefail
 
-echo '{"score": 0.0, "constraints_passed": true, "constraint_violations": []}'
+echo '{
+  "score": 0.0,
+  "constraints_passed": false,
+  "constraint_violations": [
+    "evaluator not implemented"
+  ],
+  "evidence": {
+    "claim": "baseline produces expected output",
+    "conditions": "unconfigured",
+    "observation_ref": "unimplemented",
+    "positive_control": "missing",
+    "control_ref": null,
+    "target_outcome": "skipped",
+    "falsification_criterion": "declare before running",
+    "absence_refutes": false,
+    "claim_verdict": "inconclusive_no_positive_control"
+  }
+}'
 """
 
 
