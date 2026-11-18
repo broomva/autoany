@@ -229,3 +229,49 @@ fn inconsistent_reports_produce_schema_safe_ledger_records() {
         println!("LEDGER_RECORD:{}", serde_json::to_string(&trial).unwrap());
     }
 }
+
+struct CachedEvaluate(Outcome);
+impl Evaluator for CachedEvaluate {
+    type Artifact = bool;
+    fn evaluate(&self, candidate: &bool, _: &ExecutionResult) -> Result<Outcome> {
+        Ok(if *candidate {
+            self.0.clone()
+        } else {
+            outcome(None)
+        })
+    }
+}
+
+#[test]
+fn rejected_outcome_cannot_reenter_through_legacy_compatibility() {
+    let mut bad = evidence(PositiveControl::Missing, TargetOutcome::NotDetected, true);
+    bad.conditions.clear();
+    let mut first = EgriLoop::new(
+        Propose,
+        Execute,
+        MalformedEvaluate(bad),
+        AlwaysPromote,
+        BudgetController::new(1, None),
+        Ledger::in_memory(),
+    );
+    first.baseline(false).unwrap();
+    let rejected = first.step().unwrap().outcome;
+    assert!(rejected.evidence.is_none());
+    assert!(!rejected.constraints_passed);
+
+    let mut second = EgriLoop::new(
+        Propose,
+        Execute,
+        CachedEvaluate(rejected),
+        AlwaysPromote,
+        BudgetController::new(1, None),
+        Ledger::in_memory(),
+    );
+    assert!(second.baseline(true).is_err());
+    assert!(second.best().is_none());
+    // A genuinely legacy numeric outcome with passing constraints still works.
+    second.baseline(false).unwrap();
+    let trial = second.step().unwrap();
+    assert_eq!(trial.decision.action, Action::Discarded);
+    assert_eq!(second.best(), Some(&false));
+}

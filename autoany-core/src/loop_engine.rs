@@ -89,9 +89,9 @@ where
         let exec_result = self.executor.execute(&artifact)?;
         let outcome = self.evaluator.evaluate(&artifact, &exec_result)?;
 
-        if !outcome.evidence_allows_promotion() {
+        if !outcome.constraints_passed || !outcome.evidence_allows_promotion() {
             return Err(EgriError::EvaluationFailed(
-                "baseline evidence is inconclusive or inconsistent".into(),
+                "baseline constraints failed or evidence is inconclusive/inconsistent".into(),
             ));
         }
         self.promotion.set_baseline(artifact);
@@ -182,7 +182,18 @@ where
 
         // Select
         // Enforce before even a custom selector can promote an invalid null.
-        let decision = if outcome.evidence_allows_promotion() {
+        let decision = if !outcome.constraints_passed {
+            // This also preserves ineligibility for quarantined evidence when
+            // an evaluator returns a cached or replayed outcome.
+            Decision {
+                action: Action::Discarded,
+                reason: format!(
+                    "constraint violation: {}",
+                    outcome.constraint_violations.join(", ")
+                ),
+                new_state_id: None,
+            }
+        } else if outcome.evidence_allows_promotion() {
             self.selector.select(&outcome, best_outcome)?
         } else {
             Decision {

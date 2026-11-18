@@ -160,3 +160,8 @@ Malformed evaluator reports are preserved in
 re-derived; if required reference/condition text is missing, that canonical
 evidence is omitted rather than fabricated. Such a trial still escalates with
 failed constraints, even if normalization would make its verdict conclusive.
+
+The loop also enforces failed constraints before baseline establishment and
+custom selection. Reusing a quarantined outcome cannot turn its omitted
+canonical evidence into a legacy-compatible pass: its failed constraints remain
+binding, and the reused candidate is discarded.
