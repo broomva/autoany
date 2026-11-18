@@ -180,3 +180,52 @@ fn loop_rejects_inconclusive_baseline_and_custom_selector_cannot_bypass_evidence
     assert_eq!(engine.best(), Some(&false));
     assert_eq!(engine.ledger().records().len(), 2);
 }
+
+struct MalformedEvaluate(EvaluationEvidence);
+impl Evaluator for MalformedEvaluate {
+    type Artifact = bool;
+    fn evaluate(&self, candidate: &bool, _: &ExecutionResult) -> Result<Outcome> {
+        Ok(outcome(Some(if *candidate {
+            self.0.clone()
+        } else {
+            evidence(PositiveControl::Pass, TargetOutcome::Detected, true)
+        })))
+    }
+}
+
+#[test]
+fn inconsistent_reports_produce_schema_safe_ledger_records() {
+    let mut forged = evidence(PositiveControl::Missing, TargetOutcome::NotDetected, true);
+    forged.claim_verdict = ClaimVerdict::Refuted;
+    let mut missing_ref = evidence(PositiveControl::Pass, TargetOutcome::Detected, true);
+    missing_ref.control_ref = None;
+    let mut empty_conditions = evidence(PositiveControl::Pass, TargetOutcome::Detected, true);
+    empty_conditions.conditions = "  ".into();
+    for report in [forged, missing_ref, empty_conditions] {
+        let original = serde_json::to_value(&report).unwrap();
+        let mut engine = EgriLoop::new(
+            Propose,
+            Execute,
+            MalformedEvaluate(report),
+            AlwaysPromote,
+            BudgetController::new(1, None),
+            Ledger::in_memory(),
+        );
+        engine.baseline(false).unwrap();
+        let trial = engine.step().unwrap();
+        assert_eq!(trial.decision.action, Action::Escalated);
+        assert!(!trial.outcome.constraints_passed);
+        assert_eq!(
+            trial.outcome.evaluator_metadata.as_ref().unwrap()["rejected_evidence"],
+            original
+        );
+        if let Some(e) = trial.outcome.evidence.as_ref() {
+            assert!(e.is_consistent());
+            assert_eq!(e.claim_verdict, ClaimVerdict::InconclusiveNoPositiveControl);
+        }
+        assert_eq!(engine.best(), Some(&false));
+        // Python's schema integration test consumes real loop output, not a
+        // manually constructed approximation of the serialized contract.
+        println!("LEDGER_RECORD:{}", serde_json::to_string(&trial).unwrap());
+    }
+}

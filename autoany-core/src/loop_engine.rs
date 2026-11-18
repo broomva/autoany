@@ -178,7 +178,7 @@ where
         };
 
         // Evaluate
-        let outcome = self.evaluator.evaluate(&candidate, &exec_result)?;
+        let mut outcome = self.evaluator.evaluate(&candidate, &exec_result)?;
 
         // Select
         // Enforce before even a custom selector can promote an invalid null.
@@ -191,6 +191,8 @@ where
                 new_state_id: None,
             }
         };
+
+        outcome.prepare_for_ledger();
 
         info!(
             score = ?outcome.score,

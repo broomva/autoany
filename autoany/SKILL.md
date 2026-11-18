@@ -154,3 +154,9 @@ proof they included controls. Rust literal constructors now require
 `evidence: None` or `Some(...)`. Absence-sensitive adapters must populate it.
 The generated evaluator stub now records an unimplemented, inconclusive result
 with failed constraints, never a ready-to-promote baseline.
+
+Malformed evaluator reports are preserved in
+`evaluator_metadata.rejected_evidence`. The canonical evidence verdict is
+re-derived; if required reference/condition text is missing, that canonical
+evidence is omitted rather than fabricated. Such a trial still escalates with
+failed constraints, even if normalization would make its verdict conclusive.

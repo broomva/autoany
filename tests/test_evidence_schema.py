@@ -114,3 +114,32 @@ def test_scaffold_stub_is_explicitly_unimplemented_and_cannot_pass(tmp_path):
     r["decision"]["action"] = "promoted"
     with pytest.raises(jsonschema.ValidationError):
         jsonschema.validate(r, schema)
+
+
+def test_actual_invalid_evaluator_trials_conform_to_canonical_schema():
+    result = subprocess.run(
+        [
+            "cargo",
+            "test",
+            "--manifest-path",
+            str(ROOT / "autoany-core/Cargo.toml"),
+            "--test",
+            "evidence_test",
+            "inconsistent_reports_produce_schema_safe_ledger_records",
+            "--",
+            "--nocapture",
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    records = [
+        json.loads(line.split("LEDGER_RECORD:", 1)[1])
+        for line in result.stdout.splitlines()
+        if line.startswith("LEDGER_RECORD:")
+    ]
+    assert len(records) == 3
+    for trial in records:
+        jsonschema.validate(trial, SCHEMA)
+        assert trial["decision"]["action"] == "escalated"
+        assert trial["outcome"]["evaluator_metadata"]["rejected_evidence"]

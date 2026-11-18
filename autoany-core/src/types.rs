@@ -181,9 +181,9 @@ impl EvaluationEvidence {
         }
     }
 
-    /// Validate receipt structure and require a conclusive controlled result.
+    /// Validate receipt structure and agreement with the observed control/target.
     /// This cannot prove that referenced evidence is truthful or relevant.
-    pub fn allows_promotion(&self) -> bool {
+    pub fn is_consistent(&self) -> bool {
         let references_present = [
             &self.claim,
             &self.conditions,
@@ -193,11 +193,17 @@ impl EvaluationEvidence {
         .iter()
         .all(|s| !s.trim().is_empty());
         references_present
-            && self
-                .control_ref
-                .as_ref()
-                .is_some_and(|s| !s.trim().is_empty())
+            && (self.positive_control != PositiveControl::Pass
+                || self
+                    .control_ref
+                    .as_ref()
+                    .is_some_and(|s| !s.trim().is_empty()))
             && self.claim_verdict == self.derived_verdict()
+    }
+
+    /// Only a consistent conclusive result can support promotion.
+    pub fn allows_promotion(&self) -> bool {
+        self.is_consistent()
             && matches!(
                 self.claim_verdict,
                 ClaimVerdict::Detected | ClaimVerdict::Refuted
@@ -220,6 +226,27 @@ pub struct Outcome {
 }
 
 impl Outcome {
+    /// Preserve malformed reports separately while keeping canonical ledger
+    /// evidence consistent. Call only after deciding against promotion.
+    pub(crate) fn prepare_for_ledger(&mut self) {
+        if let Some(evidence) = self.evidence.as_mut()
+            && !evidence.is_consistent()
+        {
+            self.evaluator_metadata = Some(serde_json::json!({
+                "rejected_evidence": evidence.clone(),
+                "original_metadata": self.evaluator_metadata.take(),
+            }));
+            evidence.claim_verdict = evidence.derived_verdict();
+            if !evidence.is_consistent() {
+                // Missing reference/condition text cannot be fabricated.
+                self.evidence = None;
+            }
+            self.constraints_passed = false;
+            self.constraint_violations
+                .push("invalid evaluation evidence".into());
+        }
+    }
+
     /// Legacy evaluators retain their behavior. Explicit evidence fails closed.
     pub fn evidence_allows_promotion(&self) -> bool {
         self.evidence
